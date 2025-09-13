@@ -1,0 +1,49 @@
+/* Reset default margins/paddings */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: auto; /* allow content to grow */
+  min-height: 100%;
+  overflow-y: auto; /* enable vertical scroll */
+  font-family: Arial, sans-serif;
+  background-color: #ffffff; /* ensures white background */
+}
+
+#root {
+  min-height: 100vh; /* root fills viewport at minimum */
+}
+
+/* Sidebar styling */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100%;
+  background-color: #1e1e1e;
+  color: #fff;
+  padding-top: 20px;
+}
+
+.sidebar a {
+  display: block;
+  padding: 12px 20px;
+  color: white;
+  text-decoration: none;
+}
+
+.sidebar a:hover {
+  background-color: #333;
+}
+
+/* Main content next to sidebar */
+.main-content {
+  margin-left: 220px; /* same as sidebar width */
+  padding: 20px;
+  background-color: #ffffff;
+  min-height: 100vh; /* ensures scroll works if content is short */
+}
