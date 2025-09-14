@@ -33,8 +33,8 @@ const globalStyles = {
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
 };
 
-// Sidebar component (No changes needed here as it uses globalStyles)
-const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
+// Sidebar component
+const Sidebar = ({ sidebarOpen, setSidebarOpen, isMobile }) => {
   const menuItems = [
     { name: "Home", path: "/", icon: <FaHome /> },
     { name: "Chat", path: "/chat", icon: <FaCommentDots /> },
@@ -44,7 +44,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { name: "About", path: "/about", icon: <FaInfoCircle /> },
   ];
 
-  const location = useLocation(); 
+  const location = useLocation();
+
+  // Determine sidebar width based on open state and mobile
+  const sidebarWidth = isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px");
+  const showSidebarContent = sidebarOpen || !isMobile; // Show text labels if sidebar is open or on desktop
+  const iconSize = isMobile ? "1.2rem" : "1.35rem";
+  const menuGap = isMobile ? "8px" : "15px";
 
   return (
     <aside
@@ -52,44 +58,47 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         position: "fixed",
         top: 0,
         left: 0,
-        width: sidebarOpen ? "260px" : "72px",
+        width: sidebarWidth,
         height: "100%",
-        background: globalStyles.cardBackground, 
-        backdropFilter: "blur(10px)", 
-        borderRight: `1px solid ${globalStyles.borderColor}`, 
-        transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease", 
+        background: globalStyles.cardBackground,
+        backdropFilter: "blur(10px)",
+        borderRight: `1px solid ${globalStyles.borderColor}`,
+        transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease",
         display: "flex",
         flexDirection: "column",
         paddingTop: "24px",
         zIndex: 1000,
-        boxShadow: globalStyles.shadowMedium, 
+        boxShadow: globalStyles.shadowMedium,
+        overflow: "hidden", // To prevent content spilling when width is 0
       }}
     >
       <div style={{
         display: "flex",
         alignItems: "center",
-        paddingLeft: sidebarOpen ? "24px" : "20px",
+        paddingLeft: showSidebarContent ? "24px" : "20px",
         paddingRight: "24px",
         marginBottom: "32px",
-        gap: "12px"
+        gap: "12px",
+        opacity: showSidebarContent ? 1 : 0, // Hide logo text on mobile when collapsed
+        transition: "opacity 0.3s ease",
       }}>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           style={{
             background: "none",
             border: "none",
-            color: globalStyles.textColorSecondary, 
-            fontSize: "1.35rem", 
+            color: globalStyles.textColorSecondary,
+            fontSize: iconSize,
             cursor: "pointer",
-            padding: "10px", 
-            borderRadius: globalStyles.borderRadiusBase, 
+            padding: "10px",
+            borderRadius: globalStyles.borderRadiusBase,
             transition: "all 0.2s ease",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.05)", 
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
           }}
           onMouseEnter={(e) => {
-            e.target.style.backgroundColor = "#f0f2f5"; 
-            e.target.style.color = globalStyles.textColorPrimary; 
-            e.target.style.boxShadow = "0 2px 5px rgba(0,0,0,0.1)"; 
+            e.target.style.backgroundColor = "#f0f2f5";
+            e.target.style.color = globalStyles.textColorPrimary;
+            e.target.style.boxShadow = "0 2px 5px rgba(0,0,0,0.1)";
           }}
           onMouseLeave={(e) => {
             e.target.style.backgroundColor = "transparent";
@@ -99,10 +108,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         >
           <FaBars />
         </button>
-        {sidebarOpen && (
+        {showSidebarContent && (
           <h2 style={{
-            fontSize: "1.6rem", 
-            fontWeight: "800", 
+            fontSize: "1.6rem",
+            fontWeight: "800",
             color: globalStyles.textColorPrimary,
             margin: 0,
             letterSpacing: "-0.03em"
@@ -116,40 +125,37 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         style={{
           display: "flex",
           flexDirection: "column",
-          padding: sidebarOpen ? "0 16px" : "0 12px",
-          gap: "8px", 
+          padding: showSidebarContent ? "0 16px" : "0 12px",
+          gap: "8px",
         }}
       >
         {menuItems.map((item) => (
           <NavLink
             key={item.name}
             to={item.path}
-            style={() => {
-              const isActive = location.pathname === item.path;
-              return {
-                display: "flex",
-                alignItems: "center",
-                gap: sidebarOpen ? "15px" : "0", 
-                padding: "14px 18px", 
-                borderRadius: globalStyles.borderRadiusBase, 
-                textDecoration: "none",
-                color: isActive ? globalStyles.primaryColor : globalStyles.textColorSecondary,
-                backgroundColor: isActive ? "rgba(106, 64, 237, 0.1)" : "transparent", 
-                fontWeight: isActive ? "700" : "500", 
-                fontSize: "0.95rem", 
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                justifyContent: sidebarOpen ? "flex-start" : "center",
-                cursor: "pointer",
-                border: isActive ? `1px solid rgba(106, 64, 237, 0.2)` : `1px solid transparent`, 
-                boxShadow: isActive ? "0 2px 8px rgba(106, 64, 237, 0.1)" : "none", 
-              };
-            }}
+            style={({ isActive }) => ({
+              display: "flex",
+              alignItems: "center",
+              gap: showSidebarContent ? menuGap : "0",
+              padding: "14px 18px",
+              borderRadius: globalStyles.borderRadiusBase,
+              textDecoration: "none",
+              color: isActive ? globalStyles.primaryColor : globalStyles.textColorSecondary,
+              backgroundColor: isActive ? "rgba(106, 64, 237, 0.1)" : "transparent",
+              fontWeight: isActive ? "700" : "500",
+              fontSize: "0.95rem",
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+              justifyContent: showSidebarContent ? "flex-start" : "center",
+              cursor: "pointer",
+              border: isActive ? `1px solid rgba(106, 64, 237, 0.2)` : `1px solid transparent`,
+              boxShadow: isActive ? "0 2px 8px rgba(106, 64, 237, 0.1)" : "none",
+            })}
             onMouseEnter={(e) => {
               const isActive = location.pathname === item.path;
               if (!isActive) {
-                e.target.style.backgroundColor = "#f0f2f5"; 
-                e.target.style.color = globalStyles.textColorPrimary; 
-                e.target.style.boxShadow = "0 1px 4px rgba(0,0,0,0.08)"; 
+                e.target.style.backgroundColor = "#f0f2f5";
+                e.target.style.color = globalStyles.textColorPrimary;
+                e.target.style.boxShadow = "0 1px 4px rgba(0,0,0,0.08)";
               }
             }}
             onMouseLeave={(e) => {
@@ -161,12 +167,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               }
             }}
           >
-            <span style={{ fontSize: "1.2rem" }}> 
+            <span style={{ fontSize: "1.2rem" }}>
               {item.icon}
             </span>
-            {sidebarOpen && (
+            {showSidebarContent && (
               <span style={{
-                opacity: sidebarOpen ? 1 : 0,
+                opacity: 1, // Always visible if showSidebarContent is true
                 transition: "opacity 0.3s ease 0.1s"
               }}>
                 {item.name}
@@ -176,16 +182,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         ))}
       </nav>
 
-      {sidebarOpen && (
+      {showSidebarContent && (
         <div
           style={{
             marginTop: "auto",
             padding: "24px",
-            borderTop: `1px solid ${globalStyles.borderColor}`, 
-            fontSize: "0.8rem", 
-            color: globalStyles.textColorMuted, 
+            borderTop: `1px solid ${globalStyles.borderColor}`,
+            fontSize: "0.8rem",
+            color: globalStyles.textColorMuted,
             textAlign: "center",
-            opacity: sidebarOpen ? 1 : 0,
+            opacity: 1, // Always visible if showSidebarContent is true
             transition: "opacity 0.3s ease 0.2s"
           }}
         >
@@ -208,29 +214,40 @@ function AppWrapper() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // IMPORTANT CHANGE HERE: AR page will now show sidebar and header
-  const isHomePage = location.pathname === "/"; 
-  const isChatPage = location.pathname === "/chat"; 
+  const isHomePage = location.pathname === "/";
+  const isChatPage = location.pathname === "/chat";
+  const isARPage = location.pathname === "/ar"; // Explicitly define AR page
 
-  // Sidebar appears on all pages except Home and Chat, as they are full-width layouts
-  // If AR page should have sidebar/header, remove it from this condition.
-  // For consistency with other content pages, let's keep it with sidebar/header
-  const showSidebar = true; // Sidebar always shown (can toggle)
-  const showHeader = !isHomePage && !isChatPage; // Header appears on all EXCEPT Home and Chat
+  // Sidebar should always be present for navigation, but its width and visibility of content changes
+  const showSidebar = true; // Sidebar always present
+
+  // Header should appear on all pages except Home and Chat
+  const showHeader = !isHomePage && !isChatPage;
+
+  // Mobile specific: When sidebar is open and it's a mobile device, we need an overlay
+  const showOverlay = isMobile && sidebarOpen && showSidebar;
+
+  // Adjust main content padding based on sidebar and header presence
+  const mainContentPadding = isHomePage || isChatPage ? "0" : "40px"; // No padding for Home/Chat, normal for others
+  const mainMarginLeft = showSidebar ? (isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px")) : "0";
+  const mainMarginTop = showHeader ? "72px" : "0";
+
+  // Header styles should adjust based on sidebar state for mobile
+  const headerLeft = showSidebar ? (isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px")) : "0";
 
   return (
-    <div style={{ 
-      display: "flex", 
-      minHeight: "100vh", 
+    <div style={{
+      display: "flex",
+      minHeight: "100vh",
       fontFamily: globalStyles.fontFamily,
-      background: globalStyles.mainBackground, 
+      background: globalStyles.mainBackground,
       color: globalStyles.textColorPrimary,
     }}>
-      {/* Sidebar - now always shown (based on showSidebar=true) */}
-      {showSidebar && <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />}
+      {/* Sidebar */}
+      {showSidebar && <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} />}
 
       {/* Overlay for mobile when sidebar is open */}
-      {showSidebar && sidebarOpen && isMobile && (
+      {showOverlay && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{
@@ -239,7 +256,7 @@ function AppWrapper() {
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.3)", 
+            backgroundColor: "rgba(0, 0, 0, 0.3)",
             zIndex: 900,
             transition: "all 0.3s ease",
           }}
@@ -252,29 +269,29 @@ function AppWrapper() {
           position: "fixed",
           top: 0,
           right: 0,
-          left: sidebarOpen ? "260px" : "72px",
-          height: "72px", 
-          background: globalStyles.cardBackground, 
-          backdropFilter: "blur(10px)", 
-          borderBottom: `1px solid ${globalStyles.borderColor}`, 
+          left: headerLeft,
+          height: "72px",
+          background: globalStyles.cardBackground,
+          backdropFilter: "blur(10px)",
+          borderBottom: `1px solid ${globalStyles.borderColor}`,
           color: globalStyles.textColorPrimary,
           display: "flex",
           alignItems: "center",
-          padding: "0 32px", 
+          padding: "0 24px", // Responsive padding
           zIndex: 900,
           transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          boxShadow: globalStyles.shadowLight, 
+          boxShadow: globalStyles.shadowLight,
         }}>
-          {/* AI-Powered Experience Status Indicator (Replicated from Home.jsx) */}
+          {/* AI-Powered Experience Status Indicator */}
           <div style={{
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            padding: "6px 14px", 
+            padding: "6px 14px",
             backgroundColor: globalStyles.successBg,
             border: `1px solid ${globalStyles.successBorder}`,
-            borderRadius: "18px", 
-            fontSize: "0.8rem", 
+            borderRadius: "18px",
+            fontSize: "0.75rem", // Smaller font for mobile
             color: "#166534",
             fontWeight: "600",
           }}>
@@ -283,7 +300,7 @@ function AppWrapper() {
               height: "8px",
               borderRadius: "50%",
               backgroundColor: globalStyles.successGreen,
-              boxShadow: `0 0 5px ${globalStyles.successGreen}`, 
+              boxShadow: `0 0 5px ${globalStyles.successGreen}`,
             }}></div>
             AI-Powered Experience
           </div>
@@ -296,14 +313,14 @@ function AppWrapper() {
             {/* The "Explore • Discover • Experience" Tagline */}
             <div style={{
               padding: "8px 16px",
-              borderRadius: globalStyles.borderRadiusXLarge, 
-              background: `linear-gradient(135deg, ${globalStyles.primaryColor} 0%, ${globalStyles.secondaryColor} 100%)`, 
+              borderRadius: globalStyles.borderRadiusXLarge,
+              background: `linear-gradient(135deg, ${globalStyles.primaryColor} 0%, ${globalStyles.secondaryColor} 100%)`,
               color: "#ffffff",
-              fontSize: "0.7rem", 
+              fontSize: "0.7rem",
               fontWeight: "600",
               textTransform: "uppercase",
-              letterSpacing: "0.08em", 
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)", 
+              letterSpacing: "0.08em",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             }}>
               Explore • Discover • Experience
             </div>
@@ -315,32 +332,38 @@ function AppWrapper() {
       <main
         style={{
           flex: 1,
-          marginLeft: showSidebar ? (sidebarOpen ? "260px" : "72px") : "0", 
-          marginTop: showHeader ? "72px" : "0", 
+          marginLeft: mainMarginLeft,
+          marginTop: mainMarginTop,
           minHeight: "100vh",
-          background: globalStyles.mainBackground, 
+          background: globalStyles.mainBackground,
           color: globalStyles.textColorPrimary,
           boxSizing: "border-box",
-          overflow: "auto", 
+          overflow: "auto",
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        <div style={{ 
-          width: "100%", 
-          maxWidth: "1200px", 
+        <div style={{
+          width: "100%",
+          maxWidth: "1200px",
           margin: "0 auto",
-          padding: showHeader ? "40px" : "0", // Padding for regular content pages
+          padding: mainContentPadding, // Apply padding to content within main
+          paddingLeft: isMobile ? "16px" : (isHomePage || isChatPage ? "0" : "32px"), // Responsive horizontal padding
+          paddingRight: isMobile ? "16px" : (isHomePage || isChatPage ? "0" : "32px"),
+          paddingTop: isHomePage || isChatPage ? "0" : "40px", // Consistent top padding for non-special pages
+          paddingBottom: isHomePage || isChatPage ? "0" : "40px",
         }}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/ar" element={
-              <div style={{ 
-                // These styles ensure AR content gets correct padding/margin from AppWrapper
-                width: "100%", 
-                height: "100%", 
-                // AR page specific overrides for background or layout can be put here,
-                // but we're letting AR.jsx handle its own full background for immersive feel.
+              <div style={{
+                // AR page specific styles to ensure it takes full available space without padding from AppWrapper
+                width: "100%",
+                height: "calc(100vh - " + (showHeader ? "72px" : "0px") + ")", // Adjust height to account for header
+                marginTop: showHeader ? "72px" : "0", // Push content down if header exists
+                marginLeft: isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px"), // Align with main content layout
+                overflow: "hidden", // Important for AR to fill space correctly
+                backgroundColor: "#000", // Black background for AR immersion, AR.jsx can override if needed
               }}>
                 <AR />
               </div>
