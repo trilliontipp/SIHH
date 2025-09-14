@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 8080; // PORT akan diatur oleh platform hosting
 
 // Middleware
 app.use(cors({
-  origin: 'https://sihh-git-main-abhis-projects-7f8da530.vercel.app', // Frontend URL - ini mungkin perlu disesuaikan untuk deployment
+  origin: 'https://sihh-pi.vercel.app', // Frontend URL - ini mungkin perlu disesuaikan untuk deployment
   methods: ['GET', 'POST'],
   credentials: true,
   optionsSuccessStatus: 200
