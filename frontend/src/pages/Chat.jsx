@@ -118,7 +118,7 @@ const Chat = () => {
     setIsLoading(true);
     setTranscript('');
     try {
-      const response = await axios.post('http://localhost:8080/api/chat', { message: messageText });
+      const response = await axios.post('https://sihh-zlk7.vercel.app/api/chat', { message: messageText });
       const botReply = response.data.reply || 'I did not get a response.';
       const botMessage = { role: 'assistant', content: botReply };
       setMessages(prev => [...prev, botMessage]);
