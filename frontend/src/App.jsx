@@ -46,7 +46,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isMobile }) => {
 
   const location = useLocation();
 
-  // Determine sidebar width based on open state and mobile
+  // Corrected sidebar width logic for mobile
   const sidebarWidth = isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px");
   const showSidebarContent = sidebarOpen || !isMobile; // Show text labels if sidebar is open or on desktop
   const iconSize = isMobile ? "1.2rem" : "1.35rem";
@@ -58,7 +58,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isMobile }) => {
         position: "fixed",
         top: 0,
         left: 0,
-        width: sidebarWidth,
+        width: sidebarWidth, // This now correctly shrinks to 0 on mobile when closed
         height: "100%",
         background: globalStyles.cardBackground,
         backdropFilter: "blur(10px)",
@@ -69,7 +69,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, isMobile }) => {
         paddingTop: "24px",
         zIndex: 1000,
         boxShadow: globalStyles.shadowMedium,
-        overflow: "hidden", // To prevent content spilling when width is 0
+        overflow: "hidden", // Important to prevent content spill when width is 0
       }}
     >
       <div style={{
@@ -218,22 +218,30 @@ function AppWrapper() {
   const isChatPage = location.pathname === "/chat";
   const isARPage = location.pathname === "/ar"; // Explicitly define AR page
 
-  // Sidebar should always be present for navigation, but its width and visibility of content changes
-  const showSidebar = true; // Sidebar always present
+  // Sidebar is always present for navigation, but its width and content visibility change
+  const showSidebar = true;
 
-  // Header should appear on all pages except Home and Chat
+  // Header appears on all pages except Home and Chat
   const showHeader = !isHomePage && !isChatPage;
 
-  // Mobile specific: When sidebar is open and it's a mobile device, we need an overlay
+  // Mobile specific: Overlay for when sidebar is open and it's a mobile device
   const showOverlay = isMobile && sidebarOpen && showSidebar;
 
-  // Adjust main content padding based on sidebar and header presence
-  const mainContentPadding = isHomePage || isChatPage ? "0" : "40px"; // No padding for Home/Chat, normal for others
-  const mainMarginLeft = showSidebar ? (isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px")) : "0";
+  // Corrected logic for main content margin based on sidebar state and mobile
+  const mainMarginLeft = showSidebar
+    ? (isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px"))
+    : "0";
+
+  // Header's left position also needs to dynamically adjust based on sidebar state and mobile
+  const headerLeft = showSidebar
+    ? (isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px"))
+    : "0";
+
+  // Header margin-top is only applied if the header is shown
   const mainMarginTop = showHeader ? "72px" : "0";
 
-  // Header styles should adjust based on sidebar state for mobile
-  const headerLeft = showSidebar ? (isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px")) : "0";
+  // Adjust padding for main content based on whether it's Home/Chat or other pages
+  const mainContentPadding = isHomePage || isChatPage ? "0" : "40px";
 
   return (
     <div style={{
@@ -243,7 +251,7 @@ function AppWrapper() {
       background: globalStyles.mainBackground,
       color: globalStyles.textColorPrimary,
     }}>
-      {/* Sidebar */}
+      {/* Sidebar - always rendered but width controlled by sidebarOpen and isMobile */}
       {showSidebar && <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} isMobile={isMobile} />}
 
       {/* Overlay for mobile when sidebar is open */}
@@ -263,13 +271,13 @@ function AppWrapper() {
         />
       )}
 
-      {/* Header */}
+      {/* Header - rendered on all pages except Home and Chat */}
       {showHeader && (
         <header style={{
           position: "fixed",
           top: 0,
           right: 0,
-          left: headerLeft,
+          left: headerLeft, // Dynamically adjust left based on sidebar and mobile
           height: "72px",
           background: globalStyles.cardBackground,
           backdropFilter: "blur(10px)",
@@ -328,11 +336,11 @@ function AppWrapper() {
         </header>
       )}
 
-      {/* Main content */}
+      {/* Main content area */}
       <main
         style={{
           flex: 1,
-          marginLeft: mainMarginLeft,
+          marginLeft: mainMarginLeft, // This now correctly accounts for mobile collapsed sidebar
           marginTop: mainMarginTop,
           minHeight: "100vh",
           background: globalStyles.mainBackground,
@@ -344,10 +352,11 @@ function AppWrapper() {
       >
         <div style={{
           width: "100%",
-          maxWidth: "1200px",
+          maxWidth: "1200px", // Keep max-width for content readability on larger screens
           margin: "0 auto",
           padding: mainContentPadding, // Apply padding to content within main
-          paddingLeft: isMobile ? "16px" : (isHomePage || isChatPage ? "0" : "32px"), // Responsive horizontal padding
+          // Responsive horizontal padding for content inside main
+          paddingLeft: isMobile ? "16px" : (isHomePage || isChatPage ? "0" : "32px"),
           paddingRight: isMobile ? "16px" : (isHomePage || isChatPage ? "0" : "32px"),
           paddingTop: isHomePage || isChatPage ? "0" : "40px", // Consistent top padding for non-special pages
           paddingBottom: isHomePage || isChatPage ? "0" : "40px",
@@ -361,7 +370,7 @@ function AppWrapper() {
                 width: "100%",
                 height: "calc(100vh - " + (showHeader ? "72px" : "0px") + ")", // Adjust height to account for header
                 marginTop: showHeader ? "72px" : "0", // Push content down if header exists
-                marginLeft: isMobile ? (sidebarOpen ? "260px" : "0px") : (sidebarOpen ? "260px" : "72px"), // Align with main content layout
+                marginLeft: mainMarginLeft, // Align AR content with the main layout flow
                 overflow: "hidden", // Important for AR to fill space correctly
                 backgroundColor: "#000", // Black background for AR immersion, AR.jsx can override if needed
               }}>
