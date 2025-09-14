@@ -1,14 +1,14 @@
-﻿const express = require("express");
+const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8080; // PORT akan diatur oleh platform hosting Anda
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Frontend URL
+  origin: 'http://localhost:3000', // Frontend URL - ini mungkin perlu disesuaikan untuk deployment
   methods: ['GET', 'POST'],
   credentials: true,
   optionsSuccessStatus: 200
@@ -27,10 +27,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Error handling middleware
+// Error handling middleware (diletakkan sebelum route definisi agar menangkap error dari route)
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({ error: err.message });
+  // Pastikan kita tidak mengirimkan detail error sensitif ke klien di production
+  if (process.env.NODE_ENV === 'production') {
+    res.status(500).json({ error: 'An unexpected error occurred.' });
+  } else {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Health check route
@@ -40,12 +45,12 @@ app.get("/", (req, res) => {
 
 // API health check
 app.get("/api/health", (req, res) => {
-  res.json({ 
+  res.json({
     status: 'ok',
     time: new Date().toISOString(),
     env: {
       groqApiKey: process.env.GROQ_API_KEY ? "Present" : "Missing",
-      port: PORT
+      port: PORT // Ini akan mencerminkan port yang ditetapkan oleh platform hosting
     }
   });
 });
@@ -76,9 +81,9 @@ app.get("/api/monuments", (req, res) => {
 // Chatbot API (Groq) - Fixed version
 app.post("/api/chat", async (req, res) => {
   console.log("=== Chat API Request Started ===");
-  
+
   const { message } = req.body;
-  
+
   if (!message || message.trim() === '') {
     console.log("Error: No message provided");
     return res.status(400).json({ error: "Message is required and cannot be empty" });
@@ -87,25 +92,24 @@ app.post("/api/chat", async (req, res) => {
   // Check if API key exists
   if (!process.env.GROQ_API_KEY) {
     console.log("Error: GROQ_API_KEY not found in environment variables");
-    return res.status(500).json({ 
-      error: "GROQ_API_KEY is not configured. Please add it to your .env file" 
+    return res.status(500).json({
+      error: "GROQ_API_KEY is not configured. Please add it to your .env file"
     });
   }
 
   try {
     console.log("Sending request to Groq API...");
     console.log("Message:", message);
-    
-    // Updated payload with correct model and structure
+
     const payload = {
       model: "llama-3.1-8b-instant",
       messages: [
-        { 
-          role: "system", 
+        {
+          role: "system",
           content: "You are a friendly Indian heritage guide specializing in Madhya Pradesh monuments. Answer in Hinglish (mix of Hindi and English) and be informative about Indian culture and heritage. Keep responses conversational and helpful."
         },
-        { 
-          role: "user", 
+        {
+          role: "user",
           content: message.trim()
         }
       ],
@@ -114,11 +118,11 @@ app.post("/api/chat", async (req, res) => {
       top_p: 1,
       stream: false
     };
-    
+
     console.log("Payload:", JSON.stringify(payload, null, 2));
-    
+
     const response = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions", 
+      "https://api.groq.com/openai/v1/chat/completions",
       payload,
       {
         headers: {
@@ -133,14 +137,14 @@ app.post("/api/chat", async (req, res) => {
     );
 
     console.log("Groq API Response Status:", response.status);
-    
+
     if (response.status !== 200) {
       console.error("Non-200 response:", response.data);
       throw new Error(`API returned status ${response.status}: ${JSON.stringify(response.data)}`);
     }
 
     const data = response.data;
-    
+
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error("Invalid response structure:", data);
       throw new Error("Invalid response format from Groq API");
@@ -148,8 +152,8 @@ app.post("/api/chat", async (req, res) => {
 
     const botReply = data.choices[0].message.content;
     console.log("Successfully got reply from Groq API");
-    
-    res.json({ 
+
+    res.json({
       success: true,
       reply: botReply,
       timestamp: new Date().toISOString()
@@ -158,7 +162,7 @@ app.post("/api/chat", async (req, res) => {
   } catch (error) {
     console.error("=== Groq API Error ===");
     console.error("Error message:", error.message);
-    
+
     let errorResponse = {
       error: "Failed to get response from chatbot",
       success: false,
@@ -168,8 +172,7 @@ app.post("/api/chat", async (req, res) => {
     if (error.response) {
       console.error("Response Status:", error.response.status);
       console.error("Response Data:", error.response.data);
-      
-      // Handle specific error cases
+
       if (error.response.status === 401) {
         errorResponse.error = "Invalid API key. Please check your GROQ_API_KEY";
       } else if (error.response.status === 429) {
@@ -189,7 +192,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Global error handler
+// Global error handler (menangkap error yang tidak tertangani oleh middleware di atas)
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
   res.status(500).json({
@@ -208,7 +211,7 @@ app.use((req, res, next) => {
   });
 });
 
-// Process error handlers
+// Proses error handlers
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
   process.exit(1);
@@ -219,91 +222,53 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-// Server startup
-const startServer = async () => {
-  try {
-    console.log('\n=== Starting Server ===');
-    
+
+// --- Bagian untuk hosting di Vercel ---
+// Vercel akan menggunakan module.exports untuk mendeteksi aplikasi Express Anda
+module.exports = app;
+
+// Catatan:
+// 1. `app.listen` dihapus. Vercel akan secara otomatis mengarahkan permintaan
+//    ke aplikasi `app` ini.
+// 2. `PORT` masih ada, tetapi Vercel akan menetapkannya secara dinamis.
+//    Meskipun tidak secara langsung digunakan oleh `app.listen`, variabel ini
+//    masih bisa berguna untuk logging atau konfigurasi lainnya jika diperlukan.
+// 3. `origin` di `cors` mungkin perlu disesuaikan saat deployment.
+//    Contoh: Anda mungkin ingin mengizinkan origin dari domain frontend Anda
+//    yang sudah di-deploy, atau menggunakan wildcard '*' jika aman.
+// 4. `testGroqConnection` dan `startServer` telah dihapus karena tidak diperlukan
+//    untuk deployment di Vercel. Vercel akan menangani pengujian koneksi API
+//    secara otomatis saat permintaan masuk.
+
+// Jika Anda masih ingin menjalankan ini secara lokal untuk pengujian,
+// Anda dapat menambahkan ini kembali secara kondisional:
+if (process.env.NODE_ENV !== 'production') {
+  const startLocalServer = () => {
     const server = app.listen(PORT, () => {
-      console.log('\n=== Server Started Successfully ===');
-      console.log(`  Server listening on port ${PORT}`);
+      console.log('\n=== Server Berjalan (Mode Lokal) ===');
+      console.log(`  Server mendengarkan di port ${PORT}`);
       console.log('\nAPI Endpoints:');
       console.log(`  Health:    GET  http://localhost:${PORT}/api/health`);
       console.log(`  Monuments: GET  http://localhost:${PORT}/api/monuments`);
       console.log(`  Chat:      POST http://localhost:${PORT}/api/chat`);
       console.log('\nEnvironment:');
       console.log(`  GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✓ Present' : '✗ Missing'}`);
-      console.log('\nPress Ctrl+C to stop\n');
+      console.log('\nTekan Ctrl+C untuk menghentikan\n');
 
-      // Test Groq API after server starts
-      setTimeout(() => {
-        testGroqConnection();
-      }, 2000);
+      // Uji koneksi Groq API setelah server dimulai (opsional untuk mode lokal)
+      // setTimeout(() => {
+      //   testGroqConnection(); // Anda bisa uncomment ini jika ingin menguji saat lokal
+      // }, 2000);
     });
 
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is already in use. Please try a different port.`);
+        console.error(`❌ Port ${PORT} sudah digunakan. Silakan coba port lain.`);
       } else {
-        console.error('❌ Server error:', error);
+        console.error('❌ Kesalahan server:', error);
       }
       process.exit(1);
     });
-
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
-};
-
-// Test Groq API connection
-const testGroqConnection = async () => {
-  console.log('\n=== Testing Groq API Connection ===');
-  
-  if (!process.env.GROQ_API_KEY) {
-    console.error('❌ GROQ_API_KEY not found in environment variables');
-    console.log('Please create a .env file with: GROQ_API_KEY=your_api_key_here');
-    return;
-  }
-
-  try {
-    const payload = {
-      model: "llama-3.1-8b-instant",
-      messages: [
-        { role: "user", content: "what is gwalior fort" }
-      ],
-      max_tokens: 1024
-    };
-
-    const response = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
-      payload,
-      {
-        headers: {
-          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        timeout: 10000
-      }
-    );
-
-    if (response.status === 200 && response.data.choices) {
-      console.log('✅ Groq API connection successful!');
-      console.log('Test response for "what is gwalior fort":', response.data.choices[0].message.content);
-    } else {
-      console.log('⚠️  Groq API responded but with unexpected format');
-    }
-  } catch (error) {
-    console.error('❌ Groq API connection failed:');
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Error: ${JSON.stringify(error.response.data, null, 2)}`);
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
-  }
-  console.log('=================================\n');
-};
-
-// Start the server
-startServer();
+  };
+  startLocalServer();
+}
